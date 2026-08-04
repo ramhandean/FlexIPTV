@@ -2,11 +2,38 @@ import { defineConfig, type Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import dns from 'node:dns'
+import fs from 'node:fs'
+import path from 'node:path'
 
 // Force IPv4 first for DNS resolution to prevent timeouts on Indonesian CDN endpoints
 try {
   dns.setDefaultResultOrder('ipv4first')
 } catch {}
+
+interface LocalProxyRule {
+  domains?: string[]
+  urlIncludes?: string[]
+  referer?: string
+  origin?: string
+  userAgent?: string
+}
+
+let cachedLocalRules: LocalProxyRule[] | null = null
+function getLocalProxyRules(): LocalProxyRule[] {
+  if (cachedLocalRules !== null) return cachedLocalRules
+  try {
+    const rulesPath = path.resolve(process.cwd(), 'proxy-rules.local.json')
+    if (fs.existsSync(rulesPath)) {
+      const content = fs.readFileSync(rulesPath, 'utf-8')
+      cachedLocalRules = JSON.parse(content)
+      return cachedLocalRules || []
+    }
+  } catch {
+    // File not present or invalid JSON
+  }
+  cachedLocalRules = []
+  return cachedLocalRules
+}
 
 function streamProxyPlugin(): Plugin {
   // Allow self-signed or legacy TLS certs on stream servers
@@ -76,6 +103,22 @@ function streamProxyPlugin(): Plugin {
         const targetObj = new URL(targetUrl)
         domainOrigin = `${targetObj.protocol}//${targetObj.hostname}`
         defaultReferer = `${domainOrigin}/`
+        const host = targetObj.hostname.toLowerCase()
+        const fullUrl = targetUrl.toLowerCase()
+
+        // Check local override rules if proxy-rules.local.json exists
+        const localRules = getLocalProxyRules()
+        for (const rule of localRules) {
+          const matchDomain = rule.domains && rule.domains.length > 0 && rule.domains.some((d) => host.includes(d.toLowerCase()))
+          const matchUrl = rule.urlIncludes && rule.urlIncludes.length > 0 && rule.urlIncludes.some((u) => fullUrl.includes(u.toLowerCase()))
+
+          if (matchDomain || matchUrl) {
+            if (rule.referer) defaultReferer = rule.referer
+            if (rule.origin) domainOrigin = rule.origin
+            if (rule.userAgent) defaultUserAgent = rule.userAgent
+            break
+          }
+        }
       } catch {}
 
       let effectiveReferer = refererParam || defaultReferer
