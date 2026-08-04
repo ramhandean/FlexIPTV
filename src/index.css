@@ -1,0 +1,56 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    color-scheme: dark;
+  }
+  
+  body {
+    @apply bg-slate-950 text-slate-100 font-sans antialiased overflow-x-hidden selection:bg-indigo-500 selection:text-white;
+  }
+}
+
+/* Custom scrollbar for channel list and sidebar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(15, 23, 42, 0.6);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(51, 65, 85, 0.8);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(99, 102, 241, 0.8);
+}
+
+/* Glassmorphism utilities */
+.glass-panel {
+  background: rgba(15, 23, 42, 0.75);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.glass-modal {
+  background: rgba(15, 23, 42, 0.9);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+/* Animations */
+@keyframes pulse-ring {
+  0% { transform: scale(0.95); opacity: 0.8; }
+  50% { transform: scale(1.05); opacity: 0.4; }
+  100% { transform: scale(0.95); opacity: 0.8; }
+}
+
+.live-indicator {
+  animation: pulse-ring 2s infinite ease-in-out;
+}
